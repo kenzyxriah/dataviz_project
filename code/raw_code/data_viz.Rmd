@@ -34,7 +34,7 @@ First, we'll read the data in from our `data/raw_data` directory.
 
 ```{r pet-data, warning=FALSE} 
 
-pets <- read.csv("data/raw_data/seattle_pet_licenses.csv", stringsAsFactors = FALSE)
+pets <- read.csv("/cloud/project/seattle_pet_licenses.csv", stringsAsFactors = FALSE)
 
 
 ```
