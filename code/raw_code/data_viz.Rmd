@@ -2,14 +2,12 @@
 title: "Data Viz"
 author: "Qahhar"
 date: "2023-12-30"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
-```{r setup, include=FALSE}
-# ## install packages if necessary
-# list.of.packages <- c("janitor", "ggplot2", "dplyr", "lubridate", "zoo", "forcats", "ggthemes", "knitr", "rmarkdown", "usethis")
-# new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-# if(length(new.packages)) install.packages(new.packages)
+```{r}
 
 ## load packages
 library(janitor)
@@ -32,7 +30,7 @@ The data we'll be using for this part of the project were downloaded from [kaggl
 
 First, we'll read the data in from our `data/raw_data` directory.
 
-```{r pet-data, warning=FALSE} 
+```{r} 
 
 # pets <- read.csv("/cloud/project/data/raw_data/seattle_pet_licenses.csv",
 # stringsAsFactors = FALSE)
@@ -126,16 +124,16 @@ print(species_counts)
 
 ## Visualize the Data
 
-```{r pet-barchart, warning=FALSE} 
+```{r} 
 ## visual breakdown of how many of each species 
 
-colors <- c("orange", "darkblue", "dodgerblue")
+colors <- c('#370B01', "#70402C", "#955732")
 ggplot(data = pets) +
   geom_bar(aes(x=species, fill = species, fill = species))+ 
   scale_fill_manual(values = colors)
 ```
 
-```{r pet-cat-table, warning=FALSE} 
+```{r} 
 ## Table: Most frequent Cat Name 
 pets %>% 
   filter(species == "Cat", animal_s_name != "") %>%
@@ -152,7 +150,7 @@ pets %>%
 
 ```
 
-```{r pet-dog-table, warning=FALSE} 
+```{r} 
 ## Table: Most frequent Dog Name
 pets %>% 
   filter(species == "Dog", animal_s_name != "") %>%
@@ -166,7 +164,7 @@ pets %>%
 
 - How the number of licenses recorded has changed over time?
 
-```{r pet-linechart, warning=FALSE} 
+```{r} 
 # add date and ym columns
 # pets$ym <- as.yearmon(pets$license_issue_date, "%y%m")
 
@@ -191,81 +189,130 @@ The data used in this part of the project were dowloaded from [FiveThirtyEight](
 
 ## The Data
 
-```{r meat-data, warning=FALSE} 
+The data focus on a question of choice,
+
+Consider the following hypothetical situations 
+- In Lottery A, you have a 50 chance of success with a payout of 100
+
+- In Lottery B you have a 90 chance of success with a payout of 20
+
+Assuming you have 10 to bet, would you play Lottery A or Lottery B.
+
+```{r} 
 ## read in the data
-steak <- read.csv("data/raw_data/steak-risk-survey.csv", stringsAsFactors = FALSE) %>%
+steak <- read.csv("/cloud/project/data/raw_data/steak-risk-survey.csv") %>%
   ## remove first row which just includes the word "Response" in each column
   slice(2:n())
+
+head(steak, n = 0)
+
+```
+Column names are lengthy, try changing?
+```{r}
+steak <- steak %>%
+  rename(lottery_choice = Consider.the.following.hypothetical.situations...br.In.Lottery.A..you.have.a.50..chance.of.success..with.a.payout.of..100...br.In.Lottery.B..you.have.a.90..chance.of.success..with.a.payout.of..20...br..br.Assuming.you.have..10.to.bet..would.you.play.Lottery.A.or.Lottery.B.)
+
+glimpse(steak)
+
 ```
 
 ## Explore the Data
+- How many people participated in the survey?
 
-```{r meat-explore, warning=FALSE} 
-## Include code here to explore the data 
-## and answer the questions in the exercise
+```{r} 
+nrow(steak)
+```
+
+- How many people responded “Yes” to the question “Do you eat steak?”
+```{r} 
+
+yes_steak <- steak %>%
+  filter(Do.you.eat.steak. == 'Yes') %>%
+  summarise(count = n())
+
+yes_steak
+```
+
+- How many different (unique) responses were there to the question “How do you like your steak prepared?”
+
+```{r} 
+
+new_steak <- steak %>%
+  filter(How.do.you.like.your.steak.prepared. != "") 
+  
+length(unique(new_steak$How.do.you.like.your.steak.prepared.))
+
+unique(new_steak$How.do.you.like.your.steak.prepared.)
 ```
 
 ## Wrangle the Data
 
-```{r meat-wrangle, warning=FALSE} 
-## wrangle the steak data set
+```{r} 
+
+# Create a new data frame from steak data frame and assign it to the variable `pref`
 pref <- steak %>% 
+  #code below creates a column 'steak_pref' with its values being the unique characters of the How.do.you.like.your.steak.prepared. column from 'steak' being converted to factors
   mutate(steak_pref = factor(How.do.you.like.your.steak.prepared.,
                              levels = c("Well",
                                         "Medium Well",
                                         "Medium",
                                         "Medium rare",
                                         "Rare"))) %>% 
+  #Filters out the values in the steak_pref column that are notated as ''
   filter(steak_pref != "") %>% 
   group_by(steak_pref) %>% 
+  #Using the summarize function we create a new col 'n' which basically takes the count of individual groups
   summarise(n = n()) %>%
-  mutate(prop = n / sum(n))
+  # Create a new column that creates a ratio of each unique character, by dividing their sum over the total sum
+  mutate(ratio = n / sum(n))
+
+ncol(pref)
 ```
 
 ## Visualize the Data
 
-```{r meat-visualize, warning=FALSE}
+```{r}
 ## generate the plot 
 p <- ggplot(pref) +
   ## specify you want to generate a bar chart
-  function_name(aes(x = steak_pref, y = prop, fill = steak_pref),
+  geom_bar(aes(x = steak_pref, y = ratio, fill = steak_pref),
                 stat = 'identity', 
                 width = 0.7) + 
   ## this adds text labels (you don't have to change anything here)
-  geom_text(aes(label = paste0(as.integer(prop*100),"%"),
+  geom_text(aes(label = paste0(as.integer(ratio*100),"%"),
                 x = steak_pref,
-                y = prop), 
+                y = ratio), 
             stat= "identity", 
             hjust = -0.2, 
             size = 5,
             color = "grey40") +
   ## flip coordinates to make horizontal box plot
-  function_name() +
+  coord_flip() +
   ## change the colors of the bars
-  function_name(values = c("#370B01", 
+  scale_fill_manual(values = c("#370B01", 
                            "#70402C",
                            "#955732", 
                            "#B36153",
                            "#B5413F")) +
   ## change the scale/labels of the steak-wellness variable (x-axis)
-  function_name(limits = levels(fct_rev(pref$steak_pref)),
+  scale_x_discrete(limits = levels(fct_rev(pref$steak_pref)),
                 labels = c("Well", 
                            "Medium Well" = "Medium-well",
                            "Medium",
                            "Medium rare"="Medium-rare",
                            "Rare")) +
-  ## change the scale/lables of the percent axis (y-axis)
-  function_name(labels = scales::percent, 
+  # change the scale/labels of the percent axis (y-axis)
+  scale_y_continuous(labels = scales::percent, 
                 expand = c(mult = c(0,0), 
                            add = c(0,0.035))) +
   ## change the title, subtitle, and caption
-  function_name(title="'How Do You Like Your Steak Prepared?'", 
+  labs(title="'How Do You Like Your Steak Prepared?'", 
                 subtitle="From a survey of 432 steak-eating Americans",
                 caption="FiveThirtyEight: Surveymonkey") +
   ## change the theme (use ggthemes)
-  function_name() +
+  theme_grey() +
   ## fine tune the theme
-  function_name(axis.text = element_text(size = 14), 
+  theme(axis.text = element_text(size = 14), 
                 title = element_text(size = 16), 
                 legend.position="none", 
                 plot.caption=element_text(size = 12), 
@@ -279,24 +326,11 @@ p
 
 ## Save the Plot
 
-```{r save-plot, warning=FALSE}
+```{r}
 ## save plot to figures/explanatory_figures directory
-ggsave(plot = OBJECT_NAME, filename = FILENAME, width = 8, height = 4)
+ggsave(plot = p, filename = '/cloud/project/steak_graph.png', width = 8, height = 4)
 ```
 
-## Visualize the Data
-
-```{r meat-plot, warning=FALSE} 
-### Explore the data -- create your own plot!
-
-```
-
-## Save this plot 
-
-```{r save-meat-plot, warning=FALSE}
-## save plot to figures/explanatory_figures directory
-ggsave(plot = OBJECT_NAME, filename = DIFFERENT_FILENAME)
-```
 
 
 ## Session Info 
