@@ -34,71 +34,155 @@ First, we'll read the data in from our `data/raw_data` directory.
 
 ```{r pet-data, warning=FALSE} 
 
-pets <- read.csv("/cloud/project/seattle_pet_licenses.csv", stringsAsFactors = FALSE)
+# pets <- read.csv("/cloud/project/data/raw_data/seattle_pet_licenses.csv",
+# stringsAsFactors = FALSE)
 
+pets <- read.csv("/cloud/project/data/raw_data/seattle_pet_licenses.csv")
 
+head(pets, n = 3)
+
+```
+It is noticed that a column `licence_issue_date` is not in the right format
+```{r}
+pets <- pets %>%
+  mutate(license_issue_date = ymd_hms(license_issue_date)) %>%
+  mutate(license_issue_date = format(license_issue_date, "%Y-%m-%d")) %>%
+  arrange(desc(license_issue_date))
+
+# pets <- pets %>%  
+#   mutate(date =  lubridate::ymd_hms(license_issue_date),
+#          ymd = as.yearmon(pets$date, "%y%m"))
+
+head(pets, n = 3)
 ```
 
 ## Explore the Data
 
-```{r pet-explore, warning=FALSE} 
-## Include code here to explore the data 
-## and answer the questions in the exercise
+```{r}
+#Understanding the structure 
+
+glimpse(pets)
+
+colnames(pets)
+
+# #Summarizing factor/character columns only
+# char_cols <- pets %>% select_if(is.character)
+# summary(char_cols)
+# 
+# summary(pets$species)
+
+```
+- How many pet licenses are included in the dataset?
+
+```{r}
+
+sum(!is.na(pets$license_number))
+
+```
+
+- How many unique pet names are included in the dataset (animal_s_name)
+
+```{r}
+length(unique(pets$animal_s_name))
+
+```
+
+15796 unique names out of 66042. Find the more common names?
+
+```{r}
+
+# Use the pipe operator to find the most common names
+ten_most_common_names <- pets %>%
+  na.omit() %>%
+  filter(animal_s_name != "") %>%
+  group_by(animal_s_name) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10)
+
+# Display the result
+head(ten_most_common_names, n = 3)
+```
 
 
-# Reset the row names to create a new index to make for smoother appearance
-rownames(pets) <- NULL
+- How many different species are included in this dataset (species)?
+```{r}
+length(unique(pets$species))
 
-head(pets, n = 3)
+```
+
+- Which species are included in the dataset?
+```{r}
+unique(pets$species)
+
+#Count of each unique specie
+species_counts <- pets %>%
+  group_by(species) %>%
+  summarise(count = n()) 
+
+print(species_counts)
+
 ```
 
 ## Visualize the Data
 
 ```{r pet-barchart, warning=FALSE} 
 ## visual breakdown of how many of each species 
-## are included in the dataset
-ggplot(DATASET) +
-  geom_bar(aes(x=VARIABLE))
+
+colors <- c("orange", "darkblue", "dodgerblue")
+ggplot(data = pets) +
+  geom_bar(aes(x=species, fill = species, fill = species))+ 
+  scale_fill_manual(values = colors)
 ```
 
 ```{r pet-cat-table, warning=FALSE} 
 ## Table: Most frequent Cat Name 
-DATASET %>% 
-  filter(species == "SPECIES", VARIABLE != "") %>%
-  group_by(VARIABLE) %>% 
+pets %>% 
+  filter(species == "Cat", animal_s_name != "") %>%
+  group_by(animal_s_name) %>% 
   summarise(n = n()) %>% 
   arrange(-n) %>%
   top_n(n = 10) %>%
   knitr::kable(., caption = "Top 10 Cat Names in Seattle")
+
+#using either arrange(desc(n)) or arrange(-n) will achieve the same result:
+
+# arrange(desc(n)): Sorts the values in descending order based on the column n.
+# arrange(-n): Also sorts the values in descending order based on the column n.
+
 ```
 
 ```{r pet-dog-table, warning=FALSE} 
 ## Table: Most frequent Dog Name
-## ADD CODE!
+pets %>% 
+  filter(species == "Dog", animal_s_name != "") %>%
+  group_by(animal_s_name) %>% 
+  summarise(n = n()) %>% 
+  arrange(-n) %>%
+  top_n(n = 10) %>%
+  knitr::kable(., caption = "Top 10 Dog Names in Seattle")
+
 ```
 
-```{r pet-linechart, warning=FALSE} 
-## add date and ym columns
-pets$date <- lubridate::ymd_hms(pets$license_issue_date)
-pets$ym <- as.yearmon(pets$date, "%y%m")
+- How the number of licenses recorded has changed over time?
 
-## how the number of licenses recorded has changed over time
+```{r pet-linechart, warning=FALSE} 
+# add date and ym columns
+# pets$ym <- as.yearmon(pets$license_issue_date, "%y%m")
+
+pets$ym <- as.yearmon(pets$license_issue_date, "%Y-%m-%d")
+
+# how the number of licenses recorded has changed over time
 pets %>%
-  ## group by yearmonth (`ym`)
-  function_name(VARIABLE) %>% 
+  group_by(ym) %>% 
   ## count number within each group
-  function_name(n=n()) %>%
-  ggplot(., aes(VARIABLE, n)) + 
+  summarize(n= n()) %>%
+  ggplot(., aes(ym, n)) + 
   ## geom name for line chart
-  geom_GEOM() +
+  geom_line() +
   scale_x_yearmon() + 
   xlab("") + 
   ylab("Number of licenses")
-```
-
-```{r pet-plot, warning=FALSE} 
-### Explore the data -- create your own plot!
-
 ```
 
 # Part 2: Explanatory Data Analysis
